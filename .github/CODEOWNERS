@@ -1,0 +1,4 @@
+/.circleci @tpambor
+/.github @tpambor
+/terraform @tpambor
+/sonar-project.properties @tpambor
