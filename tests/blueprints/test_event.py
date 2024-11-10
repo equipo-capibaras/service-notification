@@ -89,3 +89,15 @@ class TestEvent(ParametrizedTestCase):
             cast(Mock, mail_repo_mock.send).assert_not_called()
 
         self.assertEqual(resp.status_code, 200)
+
+    def test_alert(self) -> None:
+        mail_repo_mock = Mock(MailRepository)
+
+        data = self.gen_random_event_data()
+
+        with self.app.container.mail_repo.override(mail_repo_mock):
+            resp = self.client.post('/api/v1/incident-alert/notification', json=data)
+
+        cast(Mock, mail_repo_mock.send).assert_called_once()
+
+        self.assertEqual(resp.status_code, 200)

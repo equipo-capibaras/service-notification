@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from importlib import resources as impresources
+from typing import cast
 
 import marshmallow_dataclass
 from dependency_injector.wiring import Provide
@@ -86,6 +87,20 @@ class ResponseMail:
         self.send(response_text)
 
 
+def load_event_data() -> EventBody:
+    req_json = request.get_json(silent=True)
+    if req_json is None:
+        raise ValueError('Invalid JSON body')
+
+    req_json['reported_by'] = req_json.pop('reportedBy')
+    req_json['created_by'] = req_json.pop('createdBy')
+    req_json['assigned_to'] = req_json.pop('assignedTo')
+    req_json['client']['email_incidents'] = req_json['client'].pop('emailIncidents')
+
+    event_schema = marshmallow_dataclass.class_schema(EventBody)()
+    return cast(EventBody, event_schema.load(req_json))
+
+
 @class_route(blp, '/api/v1/incident-update/notification')
 class UpdateEvent(MethodView):
     init_every_request = False
@@ -124,17 +139,7 @@ class UpdateEvent(MethodView):
         )
 
     def post(self) -> Response:
-        req_json = request.get_json(silent=True)
-        if req_json is None:
-            raise ValueError('Invalid JSON body')
-
-        req_json['reported_by'] = req_json.pop('reportedBy')
-        req_json['created_by'] = req_json.pop('createdBy')
-        req_json['assigned_to'] = req_json.pop('assignedTo')
-        req_json['client']['email_incidents'] = req_json['client'].pop('emailIncidents')
-
-        event_schema = marshmallow_dataclass.class_schema(EventBody)()
-        data: EventBody = event_schema.load(req_json)
+        data = load_event_data()
 
         mail = ResponseMail(
             sender=(data.client.name, data.client.email_incidents),
@@ -150,5 +155,36 @@ class UpdateEvent(MethodView):
             self.mail_updated(data, mail)
         elif data.history[-1].action == Action.CLOSED:
             self.mail_closed(data, mail)
+
+        return self.response
+
+
+@class_route(blp, '/api/v1/incident-alert/notification')
+class AlertEvent(MethodView):
+    init_every_request = False
+
+    response = json_response({'message': 'Event processed.', 'code': 200}, 200)
+
+    def post(self) -> Response:
+        data = load_event_data()
+
+        mail = ResponseMail(
+            sender=(data.client.name, data.client.email_incidents),
+            receiver=(data.assigned_to.name, data.assigned_to.email),
+            subject=f'Incidente urgente: {data.name}',
+            reply_to=None,
+            language=data.language,
+        )
+
+        time_elapsed = (datetime.now(UTC).replace(tzinfo=None) - data.history[0].date).total_seconds() // 3600
+        base_url = data.client.email_incidents.split('@')[1]
+
+        mail.send_template(
+            'urgent',
+            client_name=data.client.name,
+            description=data.history[0].description,
+            time=time_elapsed,
+            url=f'https://{base_url}/incidents/{data.id}',
+        )
 
         return self.response
