@@ -83,7 +83,8 @@ data "google_iam_policy" "default" {
   binding {
     role = "roles/run.invoker"
     members = [
-      data.google_service_account.apigateway.member
+      data.google_service_account.apigateway.member,
+      data.google_service_account.pubsub.member
     ]
   }
 }
