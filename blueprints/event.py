@@ -98,6 +98,24 @@ class UpdateEvent(MethodView):
 
         mail.send_template('created', client_name=data.client.name)
 
+    def mail_updated(self, data: EventBody, mail: ResponseMail) -> None:
+        state_translated = {
+            Action.CREATED: {'es': 'creado', 'pt': 'criado'},
+            Action.ESCALATED: {'es': 'escalado', 'pt': 'escalado'},
+            Action.CLOSED: {'es': 'cerrado', 'pt': 'fechado'},
+        }
+
+        new_state = state_translated[data.history[-1].action][data.language]
+        old_state = state_translated[data.history[-2].action][data.language]
+
+        mail.send_template(
+            'updated',
+            client_name=data.client.name,
+            old_state=old_state,
+            new_state=new_state,
+            comment=data.history[-1].description,
+        )
+
     def post(self) -> Response:
         req_json = request.get_json(silent=True)
         if req_json is None:
@@ -121,5 +139,7 @@ class UpdateEvent(MethodView):
 
         if data.history[-1].action == Action.CREATED:
             self.mail_created(data, mail)
+        elif data.history[-1].action == Action.ESCALATED:
+            self.mail_updated(data, mail)
 
         return self.response

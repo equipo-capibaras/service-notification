@@ -1,10 +1,12 @@
 from typing import Any, cast
 from unittest import TestCase
+from unittest.mock import Mock
 
 from faker import Faker
 
 from app import create_app
 from models import Action, Channel, Plan, Role
+from repositories import MailRepository
 
 
 class TestEvent(TestCase):
@@ -61,6 +63,9 @@ class TestEvent(TestCase):
         }
 
     def test_health(self) -> None:
-        resp = self.client.post('/api/v1/incident-update/notification', json=self.gen_random_event_data())
+        mail_repo_mock = Mock(MailRepository)
+
+        with self.app.container.mail_repo.override(mail_repo_mock):
+            resp = self.client.post('/api/v1/incident-update/notification', json=self.gen_random_event_data())
 
         self.assertEqual(resp.status_code, 200)
