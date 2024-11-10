@@ -1,0 +1,340 @@
+version: 2.1
+orbs:
+  gcp-cli: circleci/gcp-cli@3.2.2
+
+commands:
+  sonarcloud-scan:
+    description: Detect bugs and vulnerabilities
+    parameters:
+      cache_version:
+        default: 1
+        description: increment this value if the cache is corrupted and you want to start with a clean cache
+        type: integer
+      project_root:
+        default: .
+        description: the root of the project that should be analyzed (relative to the root directory of the repository)
+        type: string
+      sonar_token_variable_name:
+        default: SONAR_TOKEN
+        description: the name of the environment variable where the SonarCloud API token is stored
+        type: env_var_name
+    steps:
+      - run:
+          name: Create cache directory if it doesn't exist
+          command: mkdir -p /tmp/cache/scanner
+      - run:
+          name: SonarCloud Scan
+          command: |
+            set -e
+            VERSION=6.2.1.4610
+            SONAR_TOKEN=$<<parameters.sonar_token_variable_name>>
+            SCANNER_DIRECTORY=/tmp/cache/scanner
+            export SONAR_USER_HOME=$SCANNER_DIRECTORY/.sonar
+            OS="linux"
+            ARCH="x64"
+            echo $SONAR_USER_HOME
+
+            if [[ ! -x "$SCANNER_DIRECTORY/sonar-scanner-$VERSION-$OS-$ARCH/bin/sonar-scanner" ]]; then
+              curl -Ol https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$VERSION-$OS-$ARCH.zip
+              unzip -qq -o sonar-scanner-cli-$VERSION-$OS-$ARCH.zip -d $SCANNER_DIRECTORY
+              rm sonar-scanner-cli-$VERSION-$OS-$ARCH.zip
+
+              chmod +x $SCANNER_DIRECTORY/sonar-scanner-$VERSION-$OS-$ARCH/bin/sonar-scanner
+              chmod +x $SCANNER_DIRECTORY/sonar-scanner-$VERSION-$OS-$ARCH/jre/bin/java
+            fi
+
+            API_URL="https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls?head=${CIRCLE_PROJECT_USERNAME}:${CIRCLE_BRANCH}"
+
+            RESPONSE=$(curl -s -H "Accept: application/vnd.github+json" "${API_URL}")
+
+            PR_COUNT=$(echo "${RESPONSE}" | jq '. | length')
+
+            if [[ "${PR_COUNT}" -eq 0 ]]; then
+              echo "No pull requests found for branch '${CIRCLE_BRANCH}'. Skipping pull request analysis."
+            elif [[ "${PR_COUNT}" -eq 1 ]]; then
+              PR_NUMBER=$(echo "${RESPONSE}" | jq -r '.[0].number')
+              PR_BASE_BRANCH=$(echo "${RESPONSE}" | jq -r '.[0].base.ref')
+              echo "Pull request number for branch '${CIRCLE_BRANCH}': ${PR_NUMBER}"
+              export SONARQUBE_SCANNER_PARAMS="{\"sonar.pullrequest.key\":\"${PR_NUMBER}\",\"sonar.pullrequest.branch\":\"${CIRCLE_BRANCH}\",\"sonar.pullrequest.base\":\"${PR_BASE_BRANCH}\"}"
+            else
+              echo "Warning: ${PR_COUNT} pull requests found for branch '${CIRCLE_BRANCH}'. Skipping pull request analysis."
+            fi
+
+            cd <<parameters.project_root>>
+            $SCANNER_DIRECTORY/sonar-scanner-$VERSION-$OS-$ARCH/bin/sonar-scanner
+
+jobs:
+  build-test:
+    docker:
+      - image: cimg/python:3.12
+    resource_class: medium
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: pip install -r requirements.txt
+      - run:
+          name: Lint (ruff)
+          command: |
+            ruff check
+            ruff format --check
+          when: always
+      - run:
+          name: Lint (mypy)
+          command: mypy --strict .
+          when: always
+      - run:
+          name: Test
+          command: |
+            coverage run
+            coverage xml
+            coverage report
+          when: always
+      - store_test_results:
+          path: ./junit.xml
+          when: always
+      - sonarcloud-scan
+
+  plan-dev-infra:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - gcp-cli/setup:
+          use_oidc: true
+          google_project_id: GCP_PROJECT_ID
+          google_project_number: GCP_PROJECT_NUMBER
+          workload_identity_pool_id: GCP_WIP_ID
+          workload_identity_pool_provider_id: GCP_WIP_PROVIDER_ID
+          service_account_email: GCP_SERVICE_ACCOUNT_EMAIL
+      - run:
+          name: Install Terraform
+          command: |
+            wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+            echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+            sudo apt update && sudo apt install terraform
+      - checkout
+      - run:
+          name: Initialize Terraform
+          working_directory: terraform
+          command: terraform init -backend-config "bucket=$TF_BUCKET"
+      - run:
+          name: Plan Terraform
+          working_directory: terraform
+          command: terraform plan -lock=false -out=tf.plan
+      - run:
+          name: Save Terraform plan
+          command: |
+            mkdir -p /tmp/workspace/tf-plan
+            cp terraform/tf.plan /tmp/workspace/tf-plan/tf.plan
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - tf-plan
+
+  plan-prod-infra:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - gcp-cli/setup:
+          use_oidc: true
+          google_project_id: GCP_PROJECT_ID
+          google_project_number: GCP_PROJECT_NUMBER
+          workload_identity_pool_id: GCP_WIP_ID
+          workload_identity_pool_provider_id: GCP_WIP_PROVIDER_ID
+          service_account_email: GCP_SERVICE_ACCOUNT_EMAIL
+      - run:
+          name: Install Terraform
+          command: |
+            wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+            echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+            sudo apt update && sudo apt install terraform
+      - checkout
+      - run:
+          name: Initialize Terraform
+          working_directory: terraform
+          command: terraform init -backend-config "bucket=$TF_BUCKET"
+      - run:
+          name: Plan Terraform
+          working_directory: terraform
+          command: terraform plan -lock=false -out=tf.plan
+      - run:
+          name: Save Terraform plan
+          command: |
+            mkdir -p /tmp/workspace/tf-plan
+            cp terraform/tf.plan /tmp/workspace/tf-plan/tf.plan
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - tf-plan
+
+  deploy-dev-infra:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - gcp-cli/setup:
+          use_oidc: true
+          google_project_id: GCP_PROJECT_ID
+          google_project_number: GCP_PROJECT_NUMBER
+          workload_identity_pool_id: GCP_WIP_ID
+          workload_identity_pool_provider_id: GCP_WIP_PROVIDER_ID
+          service_account_email: GCP_SERVICE_ACCOUNT_EMAIL
+      - run:
+          name: Install Terraform
+          command: |
+            wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+            echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+            sudo apt update && sudo apt install terraform
+      - checkout
+      - attach_workspace:
+          at: workspace
+      - run:
+          name: Load Terraform plan
+          command: cp workspace/tf-plan/tf.plan terraform/tf.plan
+      - run:
+          name: Initialize Terraform
+          working_directory: terraform
+          command: terraform init -backend-config "bucket=$TF_BUCKET"
+      - run:
+          name: Apply Terraform plan
+          working_directory: terraform
+          command: terraform apply tf.plan
+
+  deploy-prod-infra:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - gcp-cli/setup:
+          use_oidc: true
+          google_project_id: GCP_PROJECT_ID
+          google_project_number: GCP_PROJECT_NUMBER
+          workload_identity_pool_id: GCP_WIP_ID
+          workload_identity_pool_provider_id: GCP_WIP_PROVIDER_ID
+          service_account_email: GCP_SERVICE_ACCOUNT_EMAIL
+      - run:
+          name: Install Terraform
+          command: |
+            wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+            echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+            sudo apt update && sudo apt install terraform
+      - checkout
+      - attach_workspace:
+          at: workspace
+      - run:
+          name: Load Terraform plan
+          command: cp workspace/tf-plan/tf.plan terraform/tf.plan
+      - run:
+          name: Initialize Terraform
+          working_directory: terraform
+          command: terraform init -backend-config "bucket=$TF_BUCKET"
+      - run:
+          name: Apply Terraform plan
+          working_directory: terraform
+          command: terraform apply tf.plan
+
+  deploy-dev:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: medium
+    steps:
+      - checkout
+      - run :
+          name: Build container image
+          command: docker build -t $GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/$GCP_REPO_NAME/service-notification:$CIRCLE_SHA1 .
+      - gcp-cli/setup:
+          use_oidc: true
+          google_project_id: GCP_PROJECT_ID
+          google_project_number: GCP_PROJECT_NUMBER
+          workload_identity_pool_id: GCP_WIP_ID
+          workload_identity_pool_provider_id: GCP_WIP_PROVIDER_ID
+          service_account_email: GCP_SERVICE_ACCOUNT_EMAIL
+      - run:
+          name: Setup Docker credentials
+          command: gcloud auth configure-docker $GCP_REGION-docker.pkg.dev
+      - run:
+          name: Upload container image
+          command: docker push $GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/$GCP_REPO_NAME/service-notification:$CIRCLE_SHA1
+      - run:
+          name: Deploy to Cloud Run
+          command: gcloud run deploy notification --region $GCP_REGION --image=$GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/$GCP_REPO_NAME/service-notification:$CIRCLE_SHA1
+
+  deploy-prod:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: medium
+    steps:
+      - checkout
+      - run :
+          name: Build container image
+          command: docker build -t $GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/$GCP_REPO_NAME/service-notification:$CIRCLE_SHA1 .
+      - gcp-cli/setup:
+          use_oidc: true
+          google_project_id: GCP_PROJECT_ID
+          google_project_number: GCP_PROJECT_NUMBER
+          workload_identity_pool_id: GCP_WIP_ID
+          workload_identity_pool_provider_id: GCP_WIP_PROVIDER_ID
+          service_account_email: GCP_SERVICE_ACCOUNT_EMAIL
+      - run:
+          name: Setup Docker credentials
+          command: gcloud auth configure-docker $GCP_REGION-docker.pkg.dev
+      - run:
+          name: Upload container image
+          command: docker push $GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/$GCP_REPO_NAME/service-notification:$CIRCLE_SHA1
+      - run:
+          name: Deploy to Cloud Run
+          command: gcloud run deploy notification --region $GCP_REGION --image=$GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/$GCP_REPO_NAME/service-notification:$CIRCLE_SHA1
+
+workflows:
+  cicd:
+    jobs:
+      - build-test
+      - plan-dev-infra:
+          context: gcp-dev
+          filters:
+            branches:
+              ignore:
+                - main
+      - plan-prod-infra:
+          context: gcp-prod
+          filters:
+            branches:
+              only:
+                - develop
+                - main
+      - deploy-dev-infra:
+          context: terraform-dev
+          requires:
+            - plan-dev-infra
+          filters:
+            branches:
+              only:
+                - develop
+      - deploy-prod-infra:
+          context: terraform-prod
+          requires:
+            - plan-prod-infra
+          filters:
+            branches:
+              only:
+                - main
+      - deploy-dev:
+          context: gcp-dev
+          requires:
+            - deploy-dev-infra
+            - build-test
+          filters:
+            branches:
+              only:
+                - develop
+      - deploy-prod:
+          context: gcp-prod
+          requires:
+            - deploy-prod-infra
+            - build-test
+          filters:
+            branches:
+              only:
+                - main
