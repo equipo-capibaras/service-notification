@@ -1,3 +1,4 @@
+import re
 from typing import Any, cast
 
 import requests
@@ -9,12 +10,16 @@ from .util import TokenProvider
 
 
 class SendgridMailRepository(MailRepository, RestBaseRepository):
-    def __init__(self, token_provider: TokenProvider | None) -> None:
+    def __init__(self, token_provider: TokenProvider | None, blocklist: str | None = None) -> None:
         RestBaseRepository.__init__(self, '', token_provider)
+        self.blocklist = None if blocklist is None else re.compile(blocklist)
 
     def send(
         self, sender: tuple[str | None, str], receiver: tuple[str | None, str], subject: str, text: str, reply_to: str | None
     ) -> None:
+        if self.blocklist is not None and self.blocklist.match(receiver[1]):
+            return
+
         receiver_dict = {'email': receiver[1]}
         if receiver[0] is not None:
             receiver_dict['name'] = receiver[0]

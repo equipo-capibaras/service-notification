@@ -11,4 +11,5 @@ class Container(DeclarativeContainer):
     mail_repo = providers.ThreadSafeSingleton(
         SendgridMailRepository,
         token_provider=config.sendgrid.token_provider,
+        blocklist=config.sendgrid.blocklist,
     )
