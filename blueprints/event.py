@@ -56,6 +56,9 @@ class UpdateEvent(MethodView):
     response = json_response({'message': 'Event processed.', 'code': 200}, 200)
 
     def post(self) -> Response:
+        current_app.logger.error(request.headers)
+        current_app.logger.error(request.data.decode('utf-8'))
+
         req_json = request.get_json(silent=True)
         if req_json is None:
             raise ValueError('Invalid JSON body')
