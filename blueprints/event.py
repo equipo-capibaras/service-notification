@@ -152,3 +152,41 @@ class UpdateEvent(MethodView):
             self.mail_closed(data, mail)
 
         return self.response
+
+
+@class_route(blp, '/api/v1/incident-alert/notification')
+class AlertEvent(MethodView):
+    init_every_request = False
+
+    response = json_response({'message': 'Event processed.', 'code': 200}, 200)
+
+    def post(self) -> Response:
+        req_json = request.get_json(silent=True)
+        if req_json is None:
+            raise ValueError('Invalid JSON body')
+
+        req_json['reported_by'] = req_json.pop('reportedBy')
+        req_json['created_by'] = req_json.pop('createdBy')
+        req_json['assigned_to'] = req_json.pop('assignedTo')
+        req_json['client']['email_incidents'] = req_json['client'].pop('emailIncidents')
+
+        event_schema = marshmallow_dataclass.class_schema(EventBody)()
+        data: EventBody = event_schema.load(req_json)
+
+        mail = ResponseMail(
+            sender=(data.client.name, data.client.email_incidents),
+            receiver=(data.assigned_to.name, data.assigned_to.email),
+            subject=f'Incidente urgente: {data.name}',
+            reply_to=None,
+            language=data.language,
+        )
+
+        mail.send_template(
+            'urgent',
+            client_name=data.client.name,
+            description=data.history[0].description,
+            time=2,
+            url=f'https://dev.capibaras.io/incidents/{data.id}',
+        )
+
+        return self.response

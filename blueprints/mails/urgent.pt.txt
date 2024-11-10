@@ -1,0 +1,20 @@
+Olá!
+
+Foi relatado um incidente urgente que requer sua atenção imediata.
+
+Descrição do incidente:
+{description}
+
+Tempo decorrido desde o relatório: {time} horas
+
+Link: {url}
+
+Analise os detalhes do incidente no link fornecido e tome as medidas necessárias o mais rápido possível.
+
+A prioridade desse incidente é alta devido à sua natureza urgente e ao possível impacto que ele pode ter.
+
+Obrigado por sua pronta resposta.
+
+Atenciosamente,
+
+A equipe {client_name}
