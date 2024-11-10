@@ -131,3 +131,23 @@ class TestMail(ParametrizedTestCase):
                     text=text,
                     reply_to=None,
                 )
+
+    def test_send_blocked(self) -> None:
+        sender_email = self.faker.email()
+        sender_name = self.faker.name()
+
+        receiver_email = 'blocked@example.org'
+        receiver_name = self.faker.name()
+
+        subject = self.faker.sentence(4)
+        text = self.faker.text()
+
+        repo = SendgridMailRepository(None, r'^.*@example.org$')
+
+        repo.send(
+            sender=(sender_name, sender_email),
+            receiver=(receiver_name, receiver_email),
+            subject=subject,
+            text=text,
+            reply_to=None,
+        )

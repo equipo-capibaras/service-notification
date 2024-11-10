@@ -3,7 +3,7 @@ import os
 from flask import Flask
 from gcp_microservice_utils import setup_apigateway, setup_cloud_logging, setup_cloud_trace
 
-from blueprints import BlueprintHealth
+from blueprints import BlueprintEvent, BlueprintHealth
 from containers import Container
 
 
@@ -28,6 +28,9 @@ def create_app() -> FlaskMicroservice:
             type('TokenProvider', (object,), {'get_token': lambda: os.environ['SENDGRID_APIKEY']})
         )
 
+    app.container.config.sendgrid.blocklist.from_env('SENDGRID_BLOCKLIST', None)
+
+    app.register_blueprint(BlueprintEvent)
     app.register_blueprint(BlueprintHealth)
 
     return app

@@ -30,3 +30,11 @@ data "google_service_account" "circleci" {
 
   depends_on = [ google_project_service.iam ]
 }
+
+# Retrieves the service account of the PubSub.
+# This is defined as part of the core infrastructure and is shared across all microservices.
+data "google_service_account" "pubsub" {
+  account_id   = "pubsub"
+
+  depends_on = [ google_project_service.iam ]
+}

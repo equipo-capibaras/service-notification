@@ -47,6 +47,11 @@ resource "google_cloud_run_v2_service" "default" {
         }
       }
 
+      env {
+        name = "SENDGRID_BLOCKLIST"
+        value = "^.*@(example.org|example.net|example.com|universo.br|globalcom.ec|gigatel.co)$"
+      }
+
       startup_probe {
         http_get {
           path = "/api/v1/health/${local.service_name}"
@@ -83,7 +88,8 @@ data "google_iam_policy" "default" {
   binding {
     role = "roles/run.invoker"
     members = [
-      data.google_service_account.apigateway.member
+      data.google_service_account.apigateway.member,
+      data.google_service_account.pubsub.member
     ]
   }
 }

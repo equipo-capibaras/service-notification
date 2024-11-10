@@ -1,0 +1,9 @@
+¡Hola!
+
+Gracias por reportar el incidente. Hemos registrado tu incidente exitosamente en nuestro sistema.
+
+A partir de ahora, recibirás actualizaciones sobre el estado de tu reporte directamente en tu correo electrónico. También puedes verificar el estado en cualquier momento a través de nuestra aplicación móvil.
+
+Atentamente,
+
+El equipo de {client_name}

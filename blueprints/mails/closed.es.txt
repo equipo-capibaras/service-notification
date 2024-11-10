@@ -1,0 +1,14 @@
+¡Hola!
+
+Te informamos que el incidente que reportaste ha sido cerrado.
+
+Detalles del cierre:
+{comment}
+
+Agradecemos tu paciencia y esperamos que el problema se haya resuelto a tu satisfacción.
+
+Recuerda que puedes consultar el historial de este incidente en cualquier momento a través de nuestra aplicación móvil.
+
+Atentamente,
+
+El equipo de {client_name}

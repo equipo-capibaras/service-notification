@@ -1,0 +1,14 @@
+Olá!
+
+Informamos que o status de seu incidente relatado foi atualizado de {old_state} para {new_state}.
+
+Detalhes da atualização:
+{comment}
+
+Você pode acompanhar o andamento do seu relatório em tempo real por meio do nosso aplicativo móvel ou aguardar novas atualizações por e-mail.
+
+Agradecemos sua paciência enquanto trabalhamos em seu relatório.
+
+Atenciosamente,
+
+A equipe {client_name}
