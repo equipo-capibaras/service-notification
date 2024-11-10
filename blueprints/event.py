@@ -116,6 +116,13 @@ class UpdateEvent(MethodView):
             comment=data.history[-1].description,
         )
 
+    def mail_closed(self, data: EventBody, mail: ResponseMail) -> None:
+        mail.send_template(
+            'closed',
+            client_name=data.client.name,
+            comment=data.history[-1].description,
+        )
+
     def post(self) -> Response:
         req_json = request.get_json(silent=True)
         if req_json is None:
@@ -141,5 +148,7 @@ class UpdateEvent(MethodView):
             self.mail_created(data, mail)
         elif data.history[-1].action == Action.ESCALATED:
             self.mail_updated(data, mail)
+        elif data.history[-1].action == Action.CLOSED:
+            self.mail_closed(data, mail)
 
         return self.response

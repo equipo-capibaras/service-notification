@@ -1,0 +1,14 @@
+Olá!
+
+Informamos que o incidente que você relatou foi encerrado.
+
+Detalhes do encerramento:
+{comment}
+
+Agradecemos sua paciência e esperamos que o problema tenha sido resolvido de forma satisfatória.
+
+Lembre-se de que você pode verificar o histórico desse incidente a qualquer momento por meio de nosso aplicativo móvel.
+
+Atenciosamente,
+
+A equipe {client_name}
