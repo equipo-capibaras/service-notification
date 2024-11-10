@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from importlib import resources as impresources
 
 import marshmallow_dataclass
@@ -181,12 +181,15 @@ class AlertEvent(MethodView):
             language=data.language,
         )
 
+        time_elapsed = (datetime.now(UTC).replace(tzinfo=None) - data.history[0].date).total_seconds() // 3600
+        base_url = data.client.email_incidents.split('@')[1]
+
         mail.send_template(
             'urgent',
             client_name=data.client.name,
             description=data.history[0].description,
-            time=2,
-            url=f'https://dev.capibaras.io/incidents/{data.id}',
+            time=time_elapsed,
+            url=f'https://{base_url}/incidents/{data.id}',
         )
 
         return self.response
