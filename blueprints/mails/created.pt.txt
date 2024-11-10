@@ -1,0 +1,9 @@
+Olá!
+
+Obrigado por relatar o incidente. Registramos seu e-mail com sucesso em nosso sistema.
+
+De agora em diante, você receberá atualizações sobre o status do seu relatório diretamente no seu e-mail. Você também pode verificar o status a qualquer momento por meio de nosso aplicativo móvel.
+
+Atenciosamente,
+
+A equipe {client_name}

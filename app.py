@@ -28,6 +28,8 @@ def create_app() -> FlaskMicroservice:
             type('TokenProvider', (object,), {'get_token': lambda: os.environ['SENDGRID_APIKEY']})
         )
 
+    app.container.config.sendgrid.blocklist.from_env('SENDGRID_BLOCKLIST', None)
+
     app.register_blueprint(BlueprintEvent)
     app.register_blueprint(BlueprintHealth)
 
