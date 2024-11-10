@@ -176,7 +176,7 @@ class AlertEvent(MethodView):
             language=data.language,
         )
 
-        time_elapsed = (datetime.now(UTC).replace(tzinfo=None) - data.history[0].date).total_seconds() // 3600
+        time_elapsed = (datetime.now(UTC) - data.history[0].date.replace(tzinfo=UTC)).total_seconds() // 3600
         base_url = data.client.email_incidents.split('@')[1]
 
         mail.send_template(
