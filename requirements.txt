@@ -1,7 +1,7 @@
 coverage==7.6.4
 dacite==1.8.1
 dependency-injector==4.43.0
-Faker==30.8.2
+Faker==32.1.0
 Flask==3.0.3
 gcp-microservice-utils==0.4.0
 gunicorn==23.0.0
