@@ -59,11 +59,12 @@ class TestEvent(ParametrizedTestCase):
     @parametrize(
         ('state', 'channel', 'expect_mail'),
         [
-            ('created', Channel.EMAIL, False),
-            ('created', Channel.WEB, True),
-            ('created', Channel.MOBILE, True),
-            ('escalated', None, True),
-            ('closed', None, True),
+            (Action.CREATED, Channel.EMAIL, False),
+            (Action.CREATED, Channel.WEB, True),
+            (Action.CREATED, Channel.MOBILE, True),
+            (Action.ESCALATED, None, True),
+            (Action.CLOSED, None, True),
+            (Action.AI_RESPONSE, None, True),
         ],
     )
     def test_update(self, *, state: str, channel: Channel | None, expect_mail: bool) -> None:
@@ -75,7 +76,7 @@ class TestEvent(ParametrizedTestCase):
                 {
                     'seq': 1,
                     'date': self.faker.past_datetime().isoformat().replace('+00:00', 'Z'),
-                    'action': Action.ESCALATED if state == 'escalated' else Action.CLOSED,
+                    'action': state,
                     'description': self.faker.text(200),
                 },
             )
