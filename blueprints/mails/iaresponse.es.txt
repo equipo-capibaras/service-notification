@@ -1,6 +1,6 @@
 ¡Hola!
 
-Te informamos que has recibido una nueva respuesta en tu inciedente.
+Te informamos que has recibido una nueva respuesta en tu incidente.
 
 Detalles de la actualización:
 {comment}
