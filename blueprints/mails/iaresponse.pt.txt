@@ -1,0 +1,14 @@
+Olá!
+
+Informamos que você recebeu uma nova resposta para o seu incidente.
+
+Detalhes da atualização:
+{comment}
+
+Você pode acompanhar o progresso do seu relatório em tempo real através do nosso aplicativo móvel ou aguardar próximas atualizações por e-mail.
+
+Agradecemos sua paciência enquanto trabalhamos em seu relatório.
+
+Atenciosamente,
+
+A equipe {client_name}

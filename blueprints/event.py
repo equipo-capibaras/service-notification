@@ -131,9 +131,9 @@ class UpdateEvent(MethodView):
             comment=data.history[-1].description,
         )
 
-    def mail_closed(self, data: EventBody, mail: ResponseMail) -> None:
+    def basic_mail(self, template_type: str, data: EventBody, mail: ResponseMail) -> None:
         mail.send_template(
-            'closed',
+            template_type,
             client_name=data.client.name,
             comment=data.history[-1].description,
         )
@@ -154,7 +154,9 @@ class UpdateEvent(MethodView):
         elif data.history[-1].action == Action.ESCALATED:
             self.mail_updated(data, mail)
         elif data.history[-1].action == Action.CLOSED:
-            self.mail_closed(data, mail)
+            self.basic_mail('closed', data, mail)
+        elif data.history[-1].action == Action.AI_RESPONSE:
+            self.basic_mail('iaresponse', data, mail)
 
         return self.response
 
