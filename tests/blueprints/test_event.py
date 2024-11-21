@@ -57,29 +57,31 @@ class TestEvent(ParametrizedTestCase):
         }
 
     @parametrize(
-        ('state', 'channel', 'expect_mail'),
+        ('states', 'channel', 'expect_mail'),
         [
-            (Action.CREATED, Channel.EMAIL, False),
-            (Action.CREATED, Channel.WEB, True),
-            (Action.CREATED, Channel.MOBILE, True),
-            (Action.ESCALATED, None, True),
-            (Action.CLOSED, None, True),
-            (Action.AI_RESPONSE, None, True),
+            ((Action.CREATED,), Channel.EMAIL, False),
+            ((Action.CREATED,), Channel.WEB, True),
+            ((Action.CREATED,), Channel.MOBILE, True),
+            ((Action.ESCALATED,), None, True),
+            ((Action.CLOSED,), None, True),
+            ((Action.AI_RESPONSE,), None, True),
+            ((Action.AI_RESPONSE, Action.ESCALATED), None, True),
         ],
     )
-    def test_update(self, *, state: str, channel: Channel | None, expect_mail: bool) -> None:
+    def test_update(self, *, states: tuple[Action], channel: Channel | None, expect_mail: bool) -> None:
         mail_repo_mock = Mock(MailRepository)
 
         data = self.gen_random_event_data(channel=channel)
-        if state != 'created':
-            data['history'].append(
-                {
-                    'seq': 1,
-                    'date': self.faker.past_datetime().isoformat().replace('+00:00', 'Z'),
-                    'action': state,
-                    'description': self.faker.text(200),
-                },
-            )
+        for idx, state in enumerate(states):
+            if state != 'created':
+                data['history'].append(
+                    {
+                        'seq': 1 + idx,
+                        'date': self.faker.past_datetime().isoformat().replace('+00:00', 'Z'),
+                        'action': state,
+                        'description': self.faker.text(200),
+                    },
+                )
 
         with self.app.container.mail_repo.override(mail_repo_mock):
             resp = self.client.post('/api/v1/incident-update/notification', json=data)

@@ -121,7 +121,12 @@ class UpdateEvent(MethodView):
         }
 
         new_state = state_translated[data.history[-1].action][data.language]
-        old_state = state_translated[data.history[-2].action][data.language]
+
+        old_action = data.history[-2].action
+        if old_action == Action.AI_RESPONSE:
+            old_action = data.history[-3].action
+
+        old_state = state_translated[old_action][data.language]
 
         mail.send_template(
             'updated',
