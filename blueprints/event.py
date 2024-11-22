@@ -211,6 +211,12 @@ class AlertEvent(MethodView):
 
         subject_text = {'es': 'Riesgo actualizado', 'pt': 'Risco atualizado'}
 
+        risk_translated = {
+            Risk.HIGH: {'es': 'Alto', 'pt': 'Alto'},
+            Risk.MEDIUM: {'es': 'Medio', 'pt': 'Médio'},
+            Risk.LOW: {'es': 'Bajo', 'pt': 'Baixo'},
+        }
+
         mail = ResponseMail(
             sender=(data.client.name, data.client.email_incidents),
             receiver=(data.assigned_to.name, data.assigned_to.email),
@@ -221,12 +227,13 @@ class AlertEvent(MethodView):
 
         base_url = data.client.email_incidents.split('@')[1]
 
-        mail.send_template(
-            'updaterisk',
-            incident_name=data.name,
-            client_name=data.client.name,
-            url=f'https://{base_url}/incidents/{data.id}',
-            risk_level=data.risk,
-        )
+        if data.risk is not None:
+            mail.send_template(
+                'updaterisk',
+                incident_name=data.name,
+                client_name=data.client.name,
+                url=f'https://{base_url}/incidents/{data.id}',
+                risk_level=risk_translated[data.risk][data.language],
+            )
 
         return self.response
