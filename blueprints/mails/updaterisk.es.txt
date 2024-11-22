@@ -1,6 +1,6 @@
 ¡Hola!
 
-Te informamos que el riesgo asociado al incidente {incident_name} ha sido actualizado.
+Te informamos que el riesgo asociado al incidente "{incident_name}" ha sido actualizado.
 
 Nuevo nivel de riesgo: {risk_level}
 Enlace: {url}
