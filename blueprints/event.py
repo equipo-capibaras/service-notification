@@ -55,7 +55,7 @@ class EventBody:
     assigned_to: UserBody
     history: list[HistoryBody]
     client: ClientBody
-    risk: Risk = field(metadata={'by_value': True})
+    risk: Risk | None = field(metadata={'by_value': True})
 
 
 class ResponseMail:
