@@ -1,14 +1,15 @@
 Olá!
 
-Informamos que você recebeu uma nova resposta para o seu incidente.
+Informamos que nossa IA gerou uma nova resposta para sua petição. Por favor, revise esta resposta para avaliar se ela pode ajudar a resolver o problema:
 
 Detalhes da atualização:
 {comment}
 
-Você pode acompanhar o progresso do seu relatório em tempo real através do nosso aplicativo móvel ou aguardar próximas atualizações por e-mail.
+Um agente da nossa equipe entrará em contato com você por telefone em breve para confirmar se a resposta gerada resolveu o seu incidente ou para fornecer assistência adicional, se necessário.
 
-Agradecemos sua paciência enquanto trabalhamos em seu relatório.
+Lembre-se de que você pode acompanhar o progresso da sua petição em tempo real através do nosso aplicativo móvel ou receber atualizações por e-mail.
+
+Agradecemos sua paciência e confiança em nossa equipe.
 
 Atenciosamente,
-
-A equipe {client_name}
+A equipe de {client_name}
