@@ -1,14 +1,15 @@
 ¡Hola!
 
-Te informamos que has recibido una nueva respuesta en tu incidente.
+Te informamos que nuestra IA ha generado una nueva respuesta para tu petición. Por favor, revisa esta respuesta para evaluar si te ayuda a solucionar el problema:
 
 Detalles de la actualización:
 {comment}
 
-Puedes seguir el progreso de tu reporte en tiempo real a través de nuestra aplicación móvil o esperar próximas actualizaciones por correo electrónico.
+Un agente de nuestro equipo se comunicará contigo por teléfono próximamente para confirmar si la respuesta generada solucionó tu incidente o para brindarte asistencia adicional, si es necesario.
 
-Agradecemos tu paciencia mientras trabajamos en tu reporte.
+Recuerda que puedes seguir el progreso de tu petición en tiempo real desde nuestra aplicación móvil o recibir actualizaciones por correo electrónico.
+
+Agradecemos tu paciencia y confianza en nuestro equipo.
 
 Atentamente,
-
 El equipo de {client_name}

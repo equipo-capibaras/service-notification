@@ -1,0 +1,12 @@
+¡Hola!
+
+Te informamos que el riesgo asociado al incidente "{incident_name}" ha sido actualizado.
+
+Nuevo nivel de riesgo: {risk_level}
+Enlace: {url}
+
+Por favor, revisa los detalles del incidente en el enlace proporcionado y toma las medidas necesarias lo antes posible.
+
+Atentamente,
+
+El equipo de {client_name}

@@ -9,13 +9,15 @@ from flask import Blueprint, Response, request
 from flask.views import MethodView
 
 from containers import Container
-from models import Action, Channel, Plan, Role
+from models import Action, Channel, Plan, Risk, Role
 from repositories import MailRepository
 
 from . import mails
 from .util import class_route, json_response
 
 blp = Blueprint('Event', __name__)
+
+EVENT_PROCESSED = 'Event processed.'
 
 
 @dataclass
@@ -53,6 +55,7 @@ class EventBody:
     assigned_to: UserBody
     history: list[HistoryBody]
     client: ClientBody
+    risk: Risk | None = field(metadata={'by_value': True})
 
 
 class ResponseMail:
@@ -105,7 +108,7 @@ def load_event_data() -> EventBody:
 class UpdateEvent(MethodView):
     init_every_request = False
 
-    response = json_response({'message': 'Event processed.', 'code': 200}, 200)
+    response = json_response({'message': EVENT_PROCESSED, 'code': 200}, 200)
 
     def mail_created(self, data: EventBody, mail: ResponseMail) -> None:
         if data.channel == Channel.EMAIL:
@@ -121,7 +124,12 @@ class UpdateEvent(MethodView):
         }
 
         new_state = state_translated[data.history[-1].action][data.language]
-        old_state = state_translated[data.history[-2].action][data.language]
+
+        old_action = data.history[-2].action
+        if old_action == Action.AI_RESPONSE:
+            old_action = data.history[-3].action
+
+        old_state = state_translated[old_action][data.language]
 
         mail.send_template(
             'updated',
@@ -162,10 +170,10 @@ class UpdateEvent(MethodView):
 
 
 @class_route(blp, '/api/v1/incident-alert/notification')
-class AlertEvent(MethodView):
+class UpdateRiskEvent(MethodView):
     init_every_request = False
 
-    response = json_response({'message': 'Event processed.', 'code': 200}, 200)
+    response = json_response({'message': EVENT_PROCESSED, 'code': 200}, 200)
 
     def post(self) -> Response:
         data = load_event_data()
@@ -188,5 +196,44 @@ class AlertEvent(MethodView):
             time=time_elapsed,
             url=f'https://{base_url}/incidents/{data.id}',
         )
+
+        return self.response
+
+
+@class_route(blp, '/api/v1/incident-risk-updated/notification')
+class AlertEvent(MethodView):
+    init_every_request = False
+
+    response = json_response({'message': EVENT_PROCESSED, 'code': 200}, 200)
+
+    def post(self) -> Response:
+        data = load_event_data()
+
+        subject_text = {'es': 'Riesgo actualizado', 'pt': 'Risco atualizado'}
+
+        risk_translated = {
+            Risk.HIGH: {'es': 'Alto', 'pt': 'Alto'},
+            Risk.MEDIUM: {'es': 'Medio', 'pt': 'Médio'},
+            Risk.LOW: {'es': 'Bajo', 'pt': 'Baixo'},
+        }
+
+        mail = ResponseMail(
+            sender=(data.client.name, data.client.email_incidents),
+            receiver=(data.assigned_to.name, data.assigned_to.email),
+            subject=f'{subject_text[data.language]}: {data.name}',
+            reply_to=None,
+            language=data.language,
+        )
+
+        base_url = data.client.email_incidents.split('@')[1]
+
+        if data.risk is not None:
+            mail.send_template(
+                'updaterisk',
+                incident_name=data.name,
+                client_name=data.client.name,
+                url=f'https://{base_url}/incidents/{data.id}',
+                risk_level=risk_translated[data.risk][data.language],
+            )
 
         return self.response
