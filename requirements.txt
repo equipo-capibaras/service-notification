@@ -5,7 +5,7 @@ Faker==33.0.0
 Flask==3.1.0
 gcp-microservice-utils==0.5.0
 gunicorn==23.0.0
-marshmallow==3.23.1
+marshmallow==3.24.1
 marshmallow_dataclass==8.7.1
 mypy==1.13.0
 requests==2.32.3
